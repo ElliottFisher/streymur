@@ -27,18 +27,24 @@ var mapPaths = [
     "M589.31,1201.28C592.64,1201.47,587.711,1204.21,589.31,1201.28z"
 ];
 
+var mapGroup = new Group;
+
 mapPaths.forEach(function(mapPath) {
     var path = new Path(mapPath);
     path.fillColor = "#E1E1E1";
     path.strokeColor = "lightgrey";
+    mapGroup.addChild(path);
 });
+
+
+mapGroup.fitBounds(paper.view.bounds);
 
 var canvas = $('#map1');
 
 // Pan and Zoom functions
 if (paper.DomEvent) {
-    var maxScale = 20;
-    var minScale = 1;
+    var maxZoom = 20;
+    var minZoom = 1;
     var lastMousePoint;
     canvas.on('wheel', function(event) {
         var e = event.originalEvent,
@@ -49,12 +55,23 @@ if (paper.DomEvent) {
             ),
             delta = e.deltaY || 0,
             scale = 1 - delta / 100;
-        if (view.scaling.x >= maxScale && scale > 1)
-            return;
-        if (view.scaling.x <= minScale && scale < 1)
-            return;
-        view.scale(scale, point);
 
+        var currentZoom = paper.view.zoom;
+        var futureZoom = currentZoom * scale;
+
+        if (scale > 1 && currentZoom >= maxZoom) {
+            return false;
+        } else if (scale < 1 && currentZoom <= minZoom) {
+            return false;
+        }
+
+        if (futureZoom > maxZoom)
+            scale = 1.01;
+        else if (futureZoom < minZoom)
+            scale = 0.99;
+
+        view.scale(scale, point);
+        console.log(paper.view.size);
         return false;
     });
     paper.view.onMouseDown = function(event) {
@@ -69,4 +86,14 @@ if (paper.DomEvent) {
     function onResize(event) {
         path.position = view.center;
     }
+
+    canvas.on('gestureend', function(e) {
+        if (e.scale < 1.0) {
+            console.log('closer');
+            // User moved fingers closer together
+        } else if (e.scale > 1.0) {
+            // User moved fingers further apart
+            console.log('further');
+        }
+    }, false);
 }
